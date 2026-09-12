@@ -16,7 +16,7 @@ import {
   FileSourceRole,
 } from './types';
 import { FileText, KeyRound } from 'lucide-react';
-import { apiFetch, getPasscode, setPasscode, PasscodeRequiredError } from './api';
+import { apiFetch, readJson, getPasscode, setPasscode, PasscodeRequiredError } from './api';
 
 const STORAGE_SESSION_KEY = 'synthetic_transcripts_session_id';
 const STORAGE_THEME_KEY = 'synthetic_transcripts_theme';
@@ -133,7 +133,7 @@ Section 3: Projective Exercise & Future Wishlist
   useEffect(() => {
     const init = async () => {
       try {
-        const h = await fetch('/api/health').then((r) => r.json());
+        const h = await readJson(await fetch('/api/health'));
         setHealth(h);
         if (h.passcodeRequired && !getPasscode()) {
           setNeedsPasscode(true);
@@ -145,7 +145,7 @@ Section 3: Projective Exercise & Future Wishlist
       try {
         const res = await apiFetch(`/api/store/status?sessionId=${sessionId}`);
         if (res.ok) {
-          const data = await res.json();
+          const data = await readJson(res);
           if (data.exists) {
             setStoreName(data.storeName);
             setFiles(data.files || []);
@@ -166,7 +166,7 @@ Section 3: Projective Exercise & Future Wishlist
       if (res.ok) {
         setNeedsPasscode(false);
         setErrorMessage(null);
-        const data = await res.json();
+        const data = await readJson(res);
         if (data.exists) {
           setStoreName(data.storeName);
           setFiles(data.files || []);
@@ -196,7 +196,7 @@ Section 3: Projective Exercise & Future Wishlist
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId, filename: file.name }),
         });
-        const { pathname } = await pathRes.json();
+        const { pathname } = await readJson(pathRes);
         const passcode = getPasscode();
         const blob = await upload(pathname, file, {
           access: 'private',
@@ -210,7 +210,7 @@ Section 3: Projective Exercise & Future Wishlist
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sessionId, pathname: blob.pathname, originalName: file.name, category, sourceRole: role }),
         });
-        data = await res.json();
+        data = await readJson(res);
         if (!res.ok) throw new Error(data.error || 'Failed to index uploaded file.');
       } else {
         const formData = new FormData();
@@ -219,7 +219,7 @@ Section 3: Projective Exercise & Future Wishlist
         formData.append('category', category);
         formData.append('sourceRole', role);
         const res = await apiFetch('/api/store/upload', { method: 'POST', body: formData });
-        data = await res.json();
+        data = await readJson(res);
         if (!res.ok) throw new Error(data.error || 'Failed to upload and index file.');
       }
       setStoreName(data.storeName);
@@ -236,7 +236,7 @@ Section 3: Projective Exercise & Future Wishlist
     try {
       const res = await apiFetch(`/api/store/file/${fileId}?sessionId=${sessionId}`, { method: 'DELETE' });
       if (res.ok) {
-        const data = await res.json();
+        const data = await readJson(res);
         setFiles(data.files || []);
       }
     } catch (err: any) {
@@ -254,7 +254,7 @@ Section 3: Projective Exercise & Future Wishlist
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId }),
       });
-      const data = await res.json();
+      const data = await readJson(res);
       if (!res.ok) throw new Error(data.error || 'Failed to load sample dataset.');
       setFiles((prev) => [...prev, ...(data.files || [])]);
       setStoreName((prev) => prev || `local:${sessionId}`);
@@ -353,7 +353,7 @@ Section 3: Projective Exercise & Future Wishlist
         });
 
         if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
+          const errData = await readJson(response).catch((e: Error) => ({ error: e.message }));
           throw new Error(errData.error || `Server responded with status ${response.status}`);
         }
         if (!response.body) throw new Error('ReadableStream not supported by browser.');

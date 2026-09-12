@@ -41,7 +41,7 @@ providers, so a fallback never changes the "voice".
   for study-specific name lists (`REDACT_NAMES`).
 * Provider choice is one env var; nothing outside `server/llm.ts` knows a provider exists.
 
-Layout: `api/index.ts` (Vercel function entry) → `server/app.ts` (Express routes) → `server/*.ts` modules. `start.ts` runs the same app locally or on a VM. `vercel.json` rewrites `/api/*` to the function and everything else to the SPA.
+Layout: `api/index.js` (Vercel function entry, loads the esbuild bundle `api/_bundle/app.cjs` produced by `npm run build`) → `server/app.ts` (Express routes) → `server/*.ts` modules. `start.ts` runs the same app locally or on a VM. `vercel.json` rewrites `/api/*` to the function and everything else to the SPA.
 
 ---
 
@@ -71,6 +71,7 @@ Do **not** commit `.env`, `public/`, `models/` or `.data/` — they are already 
    | `CF_ACCOUNT_ID` / `CF_API_TOKEN` | optional |
    | `EXTERNAL_DATA_POLICY` | `redacted` (switch to `raw` only after approval) |
    | `APP_PASSCODE` | any phrase — protects your free quota on the public URL |
+   | `NODEJS_HELPERS` | `0` — turns off Vercel's request pre-parsing so Express handles bodies and uploads itself |
 
 4. Click **Deploy**. First build takes ~3–5 minutes (it installs the ONNX runtime and downloads the 34 MB model).
 
@@ -81,6 +82,9 @@ Do **not** commit `.env`, `public/`, `models/` or `.data/` — they are already 
    Without Blob the app still works, but state lives in the function's `/tmp` and is lost between cold starts.
 
 ### 4. Verify
+* If the UI shows "The server returned HTTP 500 with a non-JSON response…", the function crashed: open
+  *Deployments → (latest) → Functions* and read the stack trace; also open `/api/health` directly in a tab.
+
 * Open `https://<your-project>.vercel.app/api/health` — check `providers.available` lists your providers.
 * Open the site, enter the passcode, click **Quick Test: Load Sample Dataset & Guide**, then **Generate Transcripts**
   with 2–3 participants. Watch *Deployments → Functions → Logs* for `[LLM]` and `[outbound]` lines.

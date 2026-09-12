@@ -5,7 +5,7 @@
   "framework": null,
   "outputDirectory": "public",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 300,
       "memory": 2048,
       "includeFiles": "{models/**,node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**}"

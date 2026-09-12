@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Wand2, Loader2, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react';
+import { apiFetch, readJson } from '../api';
 
 interface DiscussionGuidePanelProps {
   guide: string;
@@ -76,13 +77,13 @@ export function DiscussionGuidePanel({
     setIsExtracting(true);
 
     try {
-      const response = await fetch('/api/guide/extract-from-pdf', {
+      const response = await apiFetch('/api/guide/extract-from-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId }),
       });
 
-      const data = await response.json();
+      const data = await readJson(response);
 
       if (!response.ok || data.error) {
         throw new Error(data.error || 'Failed to extract discussion guide from the uploaded PDF document.');
