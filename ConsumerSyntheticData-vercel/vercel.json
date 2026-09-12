@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "framework": null,
+  "functions": {
+    "server.ts": {
+      "maxDuration": 300,
+      "memory": 2048,
+      "includeFiles": "{models/**,public/**,node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**}"
+    }
+  }
+}

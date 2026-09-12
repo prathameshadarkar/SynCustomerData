@@ -1,0 +1,6 @@
+{
+  "name": "Synthetic Discussion-Guide Transcript Generator",
+  "description": "Generates evidence-informed synthetic undergraduate qualitative research transcripts and structured evaluation data grounded in research findings via local retrieval-augmented generation, with pre-locked personas and anti-imitation safeguards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
