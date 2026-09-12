@@ -3,11 +3,16 @@
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
   "framework": null,
+  "outputDirectory": "public",
   "functions": {
-    "server.ts": {
+    "api/index.ts": {
       "maxDuration": 300,
       "memory": 2048,
-      "includeFiles": "{models/**,public/**,node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**}"
+      "includeFiles": "{models/**,node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**}"
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/((?!api/|assets/).*)", "destination": "/index.html" }
+  ]
 }

@@ -5,7 +5,7 @@ transcripts, grounded in your uploaded research material (PDF, CSV, XLSX, JSON, 
 Vercel's Hobby plan using free-tier open-weight model providers. No Google/Gemini dependency.
 
 ```
-Browser (React/Vite)  ──►  Express (server.ts, one Vercel Function)
+Browser (React/Vite)  ──►  Express (server/app.ts; api/index.ts is the Vercel entry, start.ts the local one)
                               ├─ server/storage.ts    raw files + session index  → private Vercel Blob
                               ├─ server/retrieval.ts  parse → chunk → embed (bge-small, in-process) + BM25 → hybrid search → redact()
                               ├─ server/generation.ts persona sampling → 1 persona call + 1 call per guide section → local anti-copy check
@@ -40,6 +40,8 @@ providers, so a fallback never changes the "voice".
   or `none` (nothing — pipeline still runs, ungrounded). Extend `redactText()` in `server/retrieval.ts`
   for study-specific name lists (`REDACT_NAMES`).
 * Provider choice is one env var; nothing outside `server/llm.ts` knows a provider exists.
+
+Layout: `api/index.ts` (Vercel function entry) → `server/app.ts` (Express routes) → `server/*.ts` modules. `start.ts` runs the same app locally or on a VM. `vercel.json` rewrites `/api/*` to the function and everything else to the SPA.
 
 ---
 
