@@ -55,6 +55,10 @@ interface ProviderDef {
   supportsJsonSchema: boolean;
   /** Minimum ms between requests (soft pacing; real limits come from 429 headers). */
   minSpacingMs: number;
+  /** Free-tier tokens-per-minute ceiling (prompt + max_tokens are both counted by Groq/Cerebras). */
+  tpmLimit: number;
+  /** Cap on max_tokens per request so one call cannot eat the whole per-minute budget. */
+  maxOutputTokens?: number;
   /** Extra body fields (e.g. reasoning effort for gpt-oss). */
   extraBody?: (model: string) => Record<string, any>;
 }
@@ -72,6 +76,8 @@ const PROVIDERS: Record<string, ProviderDef> = {
     },
     supportsJsonSchema: true,
     minSpacingMs: 1200,
+    tpmLimit: 30000,
+    maxOutputTokens: 2000,
     extraBody: () => ({ reasoning_effort: 'low' }),
   },
   groq: {
@@ -84,6 +90,8 @@ const PROVIDERS: Record<string, ProviderDef> = {
     },
     supportsJsonSchema: true,
     minSpacingMs: 2000,
+    tpmLimit: 8000,
+    maxOutputTokens: 1300,
     extraBody: () => ({ reasoning_effort: 'low' }),
   },
   cloudflare: {
@@ -97,6 +105,8 @@ const PROVIDERS: Record<string, ProviderDef> = {
     },
     supportsJsonSchema: false, // best-effort JSON via prompt + local validation/repair
     minSpacingMs: 500,
+    tpmLimit: Infinity,
+    maxOutputTokens: 2000,
   },
   /** Any other OpenAI-compatible endpoint (e.g. a university-hosted vLLM, or a paid vendor later). */
   openai_compatible: {
@@ -106,6 +116,7 @@ const PROVIDERS: Record<string, ProviderDef> = {
     models: {},
     supportsJsonSchema: (process.env.OPENAI_COMPAT_JSON_SCHEMA || 'true') === 'true',
     minSpacingMs: 0,
+    tpmLimit: Number(process.env.OPENAI_COMPAT_TPM || Infinity),
   },
   mock: {
     name: 'mock',
@@ -114,6 +125,7 @@ const PROVIDERS: Record<string, ProviderDef> = {
     models: { 'gpt-oss-120b': 'mock-120b', 'gpt-oss-20b': 'mock-20b' },
     supportsJsonSchema: true,
     minSpacingMs: 0,
+    tpmLimit: Infinity,
   },
 };
 
@@ -125,10 +137,29 @@ export function configuredProviders(): string[] {
     .filter((s) => s && PROVIDERS[s]);
 }
 
+/** Accept provider-flavoured names in env (openai/gpt-oss-120b, @cf/openai/gpt-oss-120b) and reduce to the logical id. */
+function normalizeLogical(name: string): string {
+  return name.trim().replace(/^@cf\//, '').replace(/^openai\//, '');
+}
+
 export function logicalModel(tier: Tier): string {
-  return tier === 'generation'
-    ? process.env.GENERATION_MODEL || 'gpt-oss-120b'
-    : process.env.UTILITY_MODEL || 'gpt-oss-20b';
+  return normalizeLogical(
+    tier === 'generation' ? process.env.GENERATION_MODEL || 'gpt-oss-120b' : process.env.UTILITY_MODEL || 'gpt-oss-20b'
+  );
+}
+
+/** Smallest per-minute token budget among the usable providers — generation trims prompts to fit it. */
+export function tightestTpm(): number {
+  const avail = availableProviders();
+  if (avail.length === 0) return 8000;
+  return Math.min(...avail.map((n) => PROVIDERS[n].tpmLimit));
+}
+
+/** Largest max_tokens every usable provider can accept. */
+export function outputTokenCap(): number {
+  const avail = availableProviders();
+  if (avail.length === 0) return 1300;
+  return Math.min(...avail.map((n) => PROVIDERS[n].maxOutputTokens ?? 4000));
 }
 
 function resolveModel(p: ProviderDef, logical: string): string {
@@ -152,6 +183,34 @@ export function availableProviders(): string[] {
 // ----------------------------------------------------------------------------
 
 const lastCall: Record<string, number> = {};
+/** Remaining tokens in the current minute per provider, learned from x-ratelimit-* headers. */
+const tokenBudget: Record<string, { remaining: number; resetAt: number }> = {};
+let rrCounter = 0;
+
+function parseResetMs(v: string | null): number {
+  if (!v) return 60000;
+  const m = v.match(/(?:(\d+)m)?(\d+(?:\.\d+)?)s/);
+  if (m) return (Number(m[1] || 0) * 60 + parseFloat(m[2])) * 1000;
+  const n = parseFloat(v);
+  return isNaN(n) ? 60000 : n < 1000 ? n * 1000 : n;
+}
+
+function recordRateHeaders(provider: string, res: Response) {
+  const rem = res.headers.get('x-ratelimit-remaining-tokens');
+  if (rem === null) return;
+  const remaining = Number(rem);
+  if (isNaN(remaining)) return;
+  tokenBudget[provider] = { remaining, resetAt: Date.now() + parseResetMs(res.headers.get('x-ratelimit-reset-tokens')) };
+}
+
+function hasRoomFor(provider: string, needTokens: number): boolean {
+  const b = tokenBudget[provider];
+  if (!b || b.resetAt <= Date.now()) return true; // unknown or window reset → assume ok
+  return b.remaining >= needTokens;
+}
+
+const estimateReqTokens = (req: ChatRequest) =>
+  Math.ceil(req.messages.reduce((a, m) => a + m.content.length, 0) / 4) + (req.maxTokens ?? 1500) + 200;
 /** Providers that just exhausted their retries are skipped for a short cooldown (ms timestamp until which to skip). */
 const cooldownUntil: Record<string, number> = {};
 const COOLDOWN_MS = Number(process.env.LLM_PROVIDER_COOLDOWN_MS || 60000);
@@ -295,7 +354,7 @@ async function callProviderOnce(p: ProviderDef, model: string, req: ChatRequest,
     model,
     messages: req.messages,
     temperature: req.temperature ?? (req.tier === 'generation' ? 0.9 : 0.3),
-    max_tokens: req.maxTokens ?? (req.tier === 'generation' ? 2400 : 1200),
+    max_tokens: Math.min(req.maxTokens ?? (req.tier === 'generation' ? 2000 : 1200), p.maxOutputTokens ?? 4000),
     stream: false,
     ...(p.extraBody ? p.extraBody(model) : {}),
   };
@@ -330,12 +389,26 @@ async function callProviderOnce(p: ProviderDef, model: string, req: ChatRequest,
   }
   clearTimeout(timeout);
 
+  recordRateHeaders(p.name, res);
   const text = await res.text();
   if (!res.ok) {
+    // Groq (and OpenAI-style servers) reject output that fails the strict schema with a 400 that still
+    // carries the model's raw text in error.failed_generation. Recover it and let our local
+    // validate-and-repair path deal with it instead of treating the call as dead.
+    if (res.status === 400 && req.jsonSchema) {
+      try {
+        const body = JSON.parse(text);
+        const failed = body?.error?.failed_generation;
+        if (typeof failed === 'string' && failed.trim()) {
+          console.warn(`[LLM] ${p.name} rejected its own JSON (${body?.error?.code || 'json_validate_failed'}); recovering failed_generation locally`);
+          return { text: failed, usage: body?.usage };
+        }
+      } catch {}
+    }
     const retryable = res.status === 429 || res.status === 408 || res.status >= 500;
-    // 400 mentioning response_format → caller retries in plain JSON mode
-    const schemaProblem = res.status === 400 && /response_format|json_schema|schema/i.test(text);
-    const err = new ProviderError(`${p.name} ${res.status}: ${text.slice(0, 300)}`, res.status, retryable, retryAfterMs(res, text));
+    // 400 about the schema/JSON mode → caller retries in plain JSON mode
+    const schemaProblem = res.status === 400 && /response_format|json_schema|schema|validate JSON|generate JSON|json_validate_failed/i.test(text);
+    const err = new ProviderError(`${p.name} ${res.status}: ${text.slice(0, 300)}`, res.status, retryable || schemaProblem, retryAfterMs(res, text));
     (err as any).schemaProblem = schemaProblem;
     throw err;
   }
@@ -368,14 +441,35 @@ export async function chat(req: ChatRequest): Promise<ChatResult> {
   let retries = 0;
   let lastErr: any = null;
 
-  for (let pi = 0; pi < providers.length; pi++) {
-    const p = PROVIDERS[providers[pi]];
+  // Order: failover keeps the configured order; round_robin (default when >1 provider) rotates the
+  // starting provider per call so per-minute budgets add up instead of one provider taking every hit.
+  const routing = (process.env.LLM_ROUTING || 'round_robin').toLowerCase();
+  const start = routing === 'failover' || providers.length < 2 ? 0 : rrCounter++ % providers.length;
+  const ordered = [...providers.slice(start), ...providers.slice(0, start)];
+  const need = estimateReqTokens(req);
+
+  for (let pi = 0; pi < ordered.length; pi++) {
+    const p = PROVIDERS[ordered[pi]];
     const model = resolveModel(p, logical);
     const coolingDown = (cooldownUntil[p.name] || 0) > Date.now();
-    const othersAvailable = providers.some((n, j) => j !== pi && (cooldownUntil[n] || 0) <= Date.now());
-    if (coolingDown && othersAvailable) {
+    const othersUsable = ordered.some(
+      (n, j) => j !== pi && (cooldownUntil[n] || 0) <= Date.now() && hasRoomFor(n, need)
+    );
+    if (coolingDown && othersUsable) {
       console.log(`[LLM] skipping ${p.name} (cooling down after recent failures)`);
       continue;
+    }
+    if (!hasRoomFor(p.name, need) && othersUsable) {
+      console.log(`[LLM] skipping ${p.name} (only ${tokenBudget[p.name]?.remaining} tokens left this minute, need ≈${need})`);
+      continue;
+    }
+    if (!hasRoomFor(p.name, need)) {
+      // Nobody else can take it: wait for this provider's window to reset instead of burning a 429.
+      const waitMs = Math.max(1000, Math.min(65000, (tokenBudget[p.name]?.resetAt || Date.now()) - Date.now() + 500));
+      const reason = `${p.name}'s free-tier minute budget is used up; waiting ${Math.ceil(waitMs / 1000)}s for it to reset…`;
+      console.log(`[LLM] ${reason}`);
+      req.onWait?.(waitMs, reason);
+      await sleep(waitMs);
     }
     const maxAttempts = 3;
     let forceJsonMode = false;
@@ -441,7 +535,7 @@ export async function chat(req: ChatRequest): Promise<ChatResult> {
           if (!e.retryable) throw e;
           retries++;
           if (attempt < maxAttempts) {
-            const wait = Math.min(e.waitMs ?? (attempt === 1 ? 4000 : 10000), 45000) + 500;
+            const wait = (e as any).schemaProblem ? 800 : Math.min(e.waitMs ?? (attempt === 1 ? 4000 : 10000), 45000) + 500;
             const reason =
               e.status === 429
                 ? `Free-tier rate limit on ${p.name}; retrying in ${Math.ceil(wait / 1000)}s…`
@@ -453,7 +547,7 @@ export async function chat(req: ChatRequest): Promise<ChatResult> {
           }
           // exhausted this provider → cool it down and move to the next one
           cooldownUntil[p.name] = Date.now() + COOLDOWN_MS;
-          const next = providers[pi + 1];
+          const next = ordered[pi + 1];
           if (next) {
             const reason = `Switching from ${p.name} to ${next} after repeated ${e.status || 'network'} errors…`;
             console.warn(`[LLM] ${reason}`);

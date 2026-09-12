@@ -90,6 +90,8 @@ Do **not** commit `.env`, `public/`, `models/` or `.data/` — they are already 
   with 2–3 participants. Watch *Deployments → Functions → Logs* for `[LLM]` and `[outbound]` lines.
 
 ### 5. Free-tier budget (for reference)
+* **Groq alone is tight**: 8k tokens/min ≈ one participant per minute with waits. Adding a free Cerebras key
+  (30k tokens/min) makes runs 3–4× faster; with several providers the adapter round-robins calls across them.
 * Vercel Hobby: 300 s per request (each participant is its own request), 2 GB RAM, 4 CPU-hours/month,
   Blob 5 GB + 10k writes/month. Hobby **never bills** — it pauses if a limit is hit.
 * Cerebras free: ~30k tokens/min, 1M tokens/day (≈ 80+ participants/day). Groq: 8k tokens/min, 200k/day.

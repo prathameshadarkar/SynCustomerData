@@ -5,7 +5,7 @@
  * retrieves ITS OWN evidence excerpts (token-budgeted, policy-filtered) so grounding is specific
  * and the request stays small enough for every free tier (Groq caps a single request at ~8k tokens).
  */
-import { chat, ChatResult } from './llm';
+import { chat, ChatResult, tightestTpm, outputTokenCap } from './llm';
 import {
   search,
   applyPolicy,
@@ -306,7 +306,10 @@ export interface GenerateParams {
   onProgress: (msg: string, extra?: Record<string, any>) => void;
 }
 
-const depthTokens = (depth: string) => (depth === 'Concise' ? 900 : depth === 'Standard' ? 1400 : 2000);
+const depthTokens = (depth: string) => Math.min(outputTokenCap(), depth === 'Concise' ? 900 : depth === 'Standard' ? 1300 : 1800);
+/** Evidence budget per call shrinks when the tightest configured provider has a small per-minute budget (Groq: 8k). */
+const evidenceBudget = () => (tightestTpm() <= 10000 ? 700 : 1200);
+const evidenceK = () => (tightestTpm() <= 10000 ? 4 : 6);
 
 export async function generateParticipant(params: GenerateParams) {
   const { sessionId, index: i, sections, spec, onProgress } = params;
@@ -317,7 +320,7 @@ export async function generateParticipant(params: GenerateParams) {
   // ---- 1. Persona -----------------------------------------------------------
   onProgress(`Creating persona for participant ${i}…`);
   const personaEvidence = applyPolicy(
-    await search(sessionId, `${params.targetAudience} student habits routines attitudes ${sections.map((s) => s.section_title).join(' ')}`, { k: 4, tokenBudget: 600 }),
+    await search(sessionId, `${params.targetAudience} student habits routines attitudes ${sections.map((s) => s.section_title).join(' ')}`, { k: 3, tokenBudget: tightestTpm() <= 10000 ? 350 : 600 }),
     policy
   );
   auditOutbound(`persona-${i}`, personaEvidence, policy);
@@ -353,7 +356,7 @@ Return JSON only.`;
     taskName: `persona-${i}`,
     schemaName: 'persona',
     jsonSchema: personaSchema,
-    maxTokens: 700,
+    maxTokens: 600,
     temperature: 0.95,
     messages: [
       { role: 'system', content: 'You design believable, internally consistent research participants. Output strict JSON.' },
@@ -387,7 +390,7 @@ Return JSON only.`;
     onProgress(`Participant ${i} (${firstName}): ${sec.section_title.slice(0, 60)}…`, { currentPersonaName: persona.name });
 
     const q = questionLines(sec);
-    const retrieved = await search(sessionId, `${sec.section_title}\n${q.join('\n')}`, { k: 6, tokenBudget: 1200 });
+    const retrieved = await search(sessionId, `${sec.section_title}\n${q.join('\n')}`, { k: evidenceK(), tokenBudget: evidenceBudget() });
     for (const c of retrieved) groundingSources.set(c.id, `${c.fileName} (${c.locator}): ${c.text.slice(0, 80).replace(/\n/g, ' ')}…`);
     const evidence = applyPolicy(retrieved, policy);
     auditOutbound(`section-${i}-${sec.section_id}`, evidence, policy);
@@ -416,6 +419,8 @@ EVIDENCE EXCERPTS (ground the participant's realistic experiences in these patte
 ${formatEvidence(evidence)}
 
 DO NOT REUSE these distinctive phrases, names or examples from the source material: ${spans.slice(0, 12).map((x) => `"${x}"`).join(', ') || '(none listed)'}
+
+LENGTH: keep the transcript under about ${Math.floor(depthTokens(params.interviewDepth) * 0.55)} words so the JSON is never cut off. Prefer fewer, richer exchanges over many short ones.
 
 Write the dialogue for this section only, alternating "Moderator:" and "${firstName}:". Then summarise each question. Return JSON only.`;
 
