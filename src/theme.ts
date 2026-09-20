@@ -3,70 +3,40 @@ import { ThemeOption, ThemeId } from './types';
 export const THEME_OPTIONS: ThemeOption[] = [
   {
     id: 'indigo',
-    name: 'Academic Indigo',
-    badge: 'Standard Lab',
-    subtitle: 'Institutional UX & Corporate Research',
-    description: 'Deep royal indigo with slate neutrals. Balanced, authoritative, and optimized for high-density transcript reading.',
+    name: 'Indigo',
+    tagline: 'Balanced default',
     primaryColor: '#4f46e5',
     accentColor: '#6366f1',
-    bgTint: 'bg-indigo-50/80 dark:bg-indigo-950/40',
-    borderPreview: 'border-indigo-400',
   },
   {
     id: 'teal',
-    name: 'Teal Discovery',
-    badge: 'Clinical & Data',
-    subtitle: 'Product Discovery & Healthcare Labs',
-    description: 'Crisp deep ocean teal with cool cyan accents. High clarity and precision, favored for telemetry and healthtech interviews.',
+    name: 'Teal',
+    tagline: 'Cool and high contrast',
     primaryColor: '#0d9488',
     accentColor: '#14b8a6',
-    bgTint: 'bg-teal-50/80 dark:bg-teal-950/40',
-    borderPreview: 'border-teal-400',
-  },
-  {
-    id: 'warm',
-    name: 'Warm Terracotta',
-    badge: 'Ethnography',
-    subtitle: 'Field Notes & Human-Centered Design',
-    description: 'Rich clay, burnt orange, and warm sand. Natural and humanistic, reminiscent of design agency field notebooks and diary studies.',
-    primaryColor: '#ea580c',
-    accentColor: '#f97316',
-    bgTint: 'bg-orange-50/80 dark:bg-orange-950/40',
-    borderPreview: 'border-orange-400',
-  },
-  {
-    id: 'emerald',
-    name: 'Emerald Insights',
-    badge: 'Fintech & ESG',
-    subtitle: 'Financial Behavior & Consumer Sentiment',
-    description: 'Forest emerald with fresh mint accents. Calibrated for retail banking, investor interviews, and consumer trust research.',
-    primaryColor: '#059669',
-    accentColor: '#10b981',
-    bgTint: 'bg-emerald-50/80 dark:bg-emerald-950/40',
-    borderPreview: 'border-emerald-400',
   },
   {
     id: 'obsidian',
-    name: 'Obsidian Studio',
-    badge: 'Monochrome',
-    subtitle: 'Executive Briefing & High Contrast',
-    description: 'Graphite, titanium, and crisp slate monochrome. Strips away color noise to keep 100% focus on verbatim participant dialogue.',
+    name: 'Obsidian',
+    tagline: 'Monochrome, for reading transcripts',
     primaryColor: '#3f3f46',
     accentColor: '#71717a',
-    bgTint: 'bg-zinc-100 dark:bg-zinc-900/60',
-    borderPreview: 'border-zinc-400',
-  },
-  {
-    id: 'violet',
-    name: 'Amethyst Studio',
-    badge: 'Creative Lab',
-    subtitle: 'Brand Strategy & Exploratory Studies',
-    description: 'Deep royal amethyst with luminous iris highlights. Engaging and expressive for generative design sprints and consumer emotion labs.',
-    primaryColor: '#7c3aed',
-    accentColor: '#8b5cf6',
-    bgTint: 'bg-violet-50/80 dark:bg-violet-950/40',
-    borderPreview: 'border-violet-400',
   },
 ];
 
 export const DEFAULT_THEME: ThemeId = 'indigo';
+
+export const THEME_IDS = THEME_OPTIONS.map((t) => t.id) as ThemeId[];
+
+/** Themes that used to exist, mapped onto the ones that survived, so saved prefs don't break. */
+const LEGACY_THEME_MAP: Record<string, ThemeId> = {
+  warm: 'indigo',
+  emerald: 'teal',
+  violet: 'indigo',
+};
+
+export function normalizeThemeId(value: string | null | undefined): ThemeId {
+  if (!value) return DEFAULT_THEME;
+  if ((THEME_IDS as string[]).includes(value)) return value as ThemeId;
+  return LEGACY_THEME_MAP[value] || DEFAULT_THEME;
+}

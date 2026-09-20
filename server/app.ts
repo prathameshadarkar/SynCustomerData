@@ -27,7 +27,7 @@ import {
   embeddingsEnabled,
   SourceRole,
 } from './retrieval';
-import { availableProviders, configuredProviders, logicalModel } from './llm';
+import { availableProviders, configuredProviders, logicalModel, activeModelInfo } from './llm';
 import {
   parseGuideIntoSections,
   samplePersonaSpec,
@@ -186,7 +186,13 @@ app.get('/api/health', (_req, res) => {
     externalDataPolicy: externalDataPolicy(),
     embeddings: embeddingsEnabled(),
     providers: { configured: configuredProviders(), available: availableProviders() },
-    models: { generation: logicalModel('generation'), utility: logicalModel('utility') },
+    models: {
+      // logical tier names, kept for backwards compatibility with anything reading them
+      generation: logicalModel('generation'),
+      utility: logicalModel('utility'),
+      // what the active provider actually resolves those to, plus a human-readable name
+      active: activeModelInfo(),
+    },
     storage: storage().kind,
   });
 });

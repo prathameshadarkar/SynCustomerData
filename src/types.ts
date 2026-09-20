@@ -126,16 +126,13 @@ export interface StoreInfo {
   files: UploadedFileRecord[];
 }
 
-export type ThemeId = 'indigo' | 'teal' | 'warm' | 'emerald' | 'obsidian' | 'violet';
+export type ThemeId = 'indigo' | 'teal' | 'obsidian';
 
 export interface ThemeOption {
   id: ThemeId;
   name: string;
-  badge: string;
-  subtitle: string;
-  description: string;
+  /** One short line. Kept deliberately brief — the swatch does most of the work. */
+  tagline: string;
   primaryColor: string;
   accentColor: string;
-  bgTint: string;
-  borderPreview: string;
 }

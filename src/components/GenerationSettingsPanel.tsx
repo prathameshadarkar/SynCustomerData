@@ -21,6 +21,7 @@ import {
   PersonaDiversity,
   InterviewDepth,
 } from '../types';
+import { DisabledHint } from './DisabledHint';
 
 interface GenerationSettingsPanelProps {
   settings: GenerationSettings;
@@ -68,6 +69,13 @@ export function GenerationSettingsPanel({
   const [showAdvancedTone, setShowAdvancedTone] = useState(false);
 
   const canGenerate = hasFiles && hasGuide && !isGenerating;
+
+  const disabledReason =
+    !hasFiles && !hasGuide
+      ? 'Upload a reference file and add a discussion guide first. The quickest way is "Quick Test: Load Sample Study" at the top of the page.'
+      : !hasFiles
+      ? 'Upload at least one reference file in section 1 first, or use "Quick Test: Load Sample Study" at the top of the page.'
+      : 'Add a discussion guide in section 2 first — one question per line.';
 
   // Extract question identifiers (e.g. Q1, Q2, 1., 2.) from discussionGuideText
   const detectedQuestions = useMemo(() => {
@@ -135,9 +143,9 @@ export function GenerationSettingsPanel({
     <div id="generation-settings-panel" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
         <div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-x-2 gap-y-1">
             <span>3. Participant & Simulation Settings</span>
-            <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+            <span className="text-xs font-normal whitespace-nowrap shrink-0 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               Evidence-Informed Setup
             </span>
           </h2>
@@ -446,8 +454,8 @@ export function GenerationSettingsPanel({
       </div>
 
       {/* Participant count stepper & presets & Generate */}
-      <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <label htmlFor="participant-count-input" className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
             <Sliders className="w-3.5 h-3.5 text-indigo-500" />
             <span>Participants to Simulate (1–15):</span>
@@ -488,7 +496,7 @@ export function GenerationSettingsPanel({
         </div>
 
         {/* Action Buttons: Resume & Generate */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2">
           {!isGenerating && participantsCount > 0 && participantsCount < settings.numParticipants && onResume && (
             <button
               id="resume-generation-btn"
@@ -501,36 +509,38 @@ export function GenerationSettingsPanel({
             </button>
           )}
 
-          {/* Generate Button */}
-          <button
-            id="generate-transcripts-btn"
-            type="button"
-            onClick={onGenerate}
-            disabled={!canGenerate}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white theme-btn-primary disabled:opacity-40 disabled:cursor-not-allowed shadow-md transition-all cursor-pointer"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Generating Grounded Transcripts...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Generate {settings.numParticipants} {settings.numParticipants === 1 ? 'Participant' : 'Participants'}</span>
-              </>
-            )}
-          </button>
+          {/* Generate Button — wrapped so a click while disabled explains what's missing */}
+          <DisabledHint disabled={!canGenerate && !isGenerating} message={disabledReason} className="w-full sm:w-auto">
+            <button
+              id="generate-transcripts-btn"
+              type="button"
+              onClick={onGenerate}
+              disabled={!canGenerate}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white theme-btn-primary disabled:opacity-40 disabled:pointer-events-none shadow-md transition-all cursor-pointer"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating Grounded Transcripts...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Generate {settings.numParticipants} {settings.numParticipants === 1 ? 'Participant' : 'Participants'}</span>
+                </>
+              )}
+            </button>
+          </DisabledHint>
         </div>
 
-        {/* Why is the button disabled? */}
+        {/* Short static nudge; the full instruction lives in the tooltip on the button itself. */}
         {!isGenerating && !canGenerate && (
-          <p className="mt-2 text-xs theme-text-muted">
+          <p className="w-full text-xs text-slate-500 dark:text-slate-400">
             {!hasFiles && !hasGuide
-              ? 'Upload a reference file and add a discussion guide to enable generation.'
+              ? 'Add a reference file and a discussion guide to enable generation.'
               : !hasFiles
-              ? 'Upload at least one reference file (or use Quick Load Test) to enable generation.'
-              : 'Add a discussion guide (or use Quick Load Test) to enable generation.'}
+              ? 'Add a reference file to enable generation.'
+              : 'Add a discussion guide to enable generation.'}
           </p>
         )}
       </div>

@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# build output
+public/
+dist/
+api/_bundle/
+
+# downloaded embedding model (fetched at build time)
+models/
+
+# local env
+.env
+.env.*
+!.env.example
+
+# logs / os noise
+*.log
+npm-debug.log*
+.DS_Store

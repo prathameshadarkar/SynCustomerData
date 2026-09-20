@@ -48,34 +48,6 @@ html.dark body {
   --theme-gradient-to: #0f766e;
 }
 
-[data-theme="warm"] {
-  --theme-brand: #ea580c;
-  --theme-brand-hover: #c2410c;
-  --theme-brand-light: #fff7ed;
-  --theme-brand-light-border: #fed7aa;
-  --theme-brand-text: #c2410c;
-  --theme-brand-dark-text: #fb923c;
-  --theme-brand-dark-bg: rgba(234, 88, 12, 0.15);
-  --theme-brand-dark-border: rgba(249, 115, 22, 0.35);
-  --theme-ring: rgba(234, 88, 12, 0.25);
-  --theme-gradient-from: #f97316;
-  --theme-gradient-to: #c2410c;
-}
-
-[data-theme="emerald"] {
-  --theme-brand: #059669;
-  --theme-brand-hover: #047857;
-  --theme-brand-light: #ecfdf5;
-  --theme-brand-light-border: #a7f3d0;
-  --theme-brand-text: #059669;
-  --theme-brand-dark-text: #34d399;
-  --theme-brand-dark-bg: rgba(5, 150, 105, 0.15);
-  --theme-brand-dark-border: rgba(16, 185, 129, 0.35);
-  --theme-ring: rgba(5, 150, 105, 0.25);
-  --theme-gradient-from: #10b981;
-  --theme-gradient-to: #047857;
-}
-
 [data-theme="obsidian"] {
   --theme-brand: #27272a;
   --theme-brand-hover: #18181b;
@@ -88,20 +60,6 @@ html.dark body {
   --theme-ring: rgba(63, 63, 70, 0.25);
   --theme-gradient-from: #52525b;
   --theme-gradient-to: #27272a;
-}
-
-[data-theme="violet"] {
-  --theme-brand: #7c3aed;
-  --theme-brand-hover: #6d28d9;
-  --theme-brand-light: #f5f3ff;
-  --theme-brand-light-border: #ddd6fe;
-  --theme-brand-text: #7c3aed;
-  --theme-brand-dark-text: #a78bfa;
-  --theme-brand-dark-bg: rgba(124, 58, 237, 0.15);
-  --theme-brand-dark-border: rgba(139, 92, 246, 0.35);
-  --theme-ring: rgba(124, 58, 237, 0.25);
-  --theme-gradient-from: #8b5cf6;
-  --theme-gradient-to: #6d28d9;
 }
 
 /* Theme utility classes */

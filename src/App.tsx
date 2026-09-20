@@ -17,6 +17,7 @@ import {
 } from './types';
 import { FileText, KeyRound } from 'lucide-react';
 import { apiFetch, readJson, getPasscode, setPasscode, PasscodeRequiredError } from './api';
+import { normalizeThemeId, DEFAULT_THEME } from './theme';
 
 const STORAGE_SESSION_KEY = 'synthetic_transcripts_session_id';
 const STORAGE_THEME_KEY = 'synthetic_transcripts_theme';
@@ -35,12 +36,11 @@ function getOrGenerateSessionId(): string {
 
 function getStoredTheme(): ThemeId {
   if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem(STORAGE_THEME_KEY);
-    if (saved && ['indigo', 'teal', 'warm', 'emerald', 'obsidian', 'violet'].includes(saved)) {
-      return saved as ThemeId;
-    }
+    // normalizeThemeId also maps themes that have since been removed onto a surviving one,
+    // so an old saved preference doesn't leave the app un-themed.
+    return normalizeThemeId(localStorage.getItem(STORAGE_THEME_KEY));
   }
-  return 'indigo';
+  return DEFAULT_THEME;
 }
 
 interface HealthInfo {
@@ -48,8 +48,21 @@ interface HealthInfo {
   clientUploads: boolean;
   externalDataPolicy: 'raw' | 'redacted' | 'none';
   providers: { configured: string[]; available: string[] };
-  models: { generation: string; utility: string };
+  models: {
+    generation: string;
+    utility: string;
+    active?: { provider: string | null; generation: string; utility: string; generationDisplay: string };
+  };
 }
+
+const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+  openai: 'OpenAI',
+  cerebras: 'Cerebras',
+  groq: 'Groq',
+  cloudflare: 'Cloudflare',
+  openai_compatible: 'OpenAI-compatible',
+  mock: 'mock provider',
+};
 
 export default function App() {
   const [sessionId, setSessionId] = useState<string>(getOrGenerateSessionId);
@@ -487,6 +500,14 @@ Section 3: Projective Exercise & Future Wishlist
   };
 
   const pdfFilesCount = files.filter((f) => f.category === 'document').length;
+
+  // Show the model that will actually serve the request, not the internal logical tier name.
+  const activeModel = health?.models.active;
+  const modelFooterLabel = activeModel
+    ? activeModel.provider
+      ? `${activeModel.generationDisplay} via ${PROVIDER_DISPLAY_NAMES[activeModel.provider] || activeModel.provider}`
+      : `${activeModel.generationDisplay} • no provider configured`
+    : 'No provider configured';
   const policyLabel =
     health?.externalDataPolicy === 'none'
       ? 'No source text is sent to the model (policy: none)'
@@ -497,8 +518,8 @@ Section 3: Projective Exercise & Future Wishlist
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-150">
       <Header
-        storeName={storeName}
         filesCount={files.length}
+        modelLabel={health?.models.active?.generationDisplay}
         isDarkMode={isDarkMode}
         onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
         onResetSession={handleResetSession}
@@ -545,7 +566,7 @@ Section 3: Projective Exercise & Future Wishlist
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-5 sm:space-y-6">
         <ErrorAlert message={errorMessage} onDismiss={() => setErrorMessage(null)} title="Operation Notice" />
 
         {health && health.providers.available.length === 0 && (
@@ -625,9 +646,10 @@ Section 3: Projective Exercise & Future Wishlist
       </main>
 
       <footer className="border-t border-slate-200 dark:border-slate-800 py-4 bg-white/50 dark:bg-slate-900/50 text-center text-xs text-slate-500 dark:text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-1.5 sm:gap-2">
           <span>
-            Synthetic Discussion-Guide Transcript Generator • {health ? `${health.models.generation} via ${health.providers.available.join(' → ') || 'no provider'}` : 'Open-weight models on free tiers'}
+            Synthetic Discussion-Guide Transcript Generator
+            {health ? ` • ${modelFooterLabel}` : ''}
           </span>
           <span>Local hybrid retrieval • Raw files never leave the server</span>
         </div>

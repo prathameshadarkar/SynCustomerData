@@ -198,6 +198,53 @@ function resolveModel(p: ProviderDef, logical: string): string {
   return p.models[logical] || logical;
 }
 
+/** Pretty names for the model ids we actually serve, so the UI stops showing internal logical names. */
+const MODEL_DISPLAY_NAMES: Record<string, string> = {
+  'gpt-4o-mini': 'GPT-4o mini',
+  'gpt-4o': 'GPT-4o',
+  'gpt-oss-120b': 'GPT-OSS 120B',
+  'gpt-oss-20b': 'GPT-OSS 20B',
+  'mock-120b': 'Mock model',
+  'mock-20b': 'Mock model',
+};
+
+export function displayModelName(id: string): string {
+  const bare = id.replace(/^@cf\//, '').replace(/^openai\//, '');
+  return MODEL_DISPLAY_NAMES[bare] || bare;
+}
+
+/**
+ * What will actually serve requests right now: the first available provider and the model ids it
+ * resolves the logical tiers to. `logicalModel()` alone is misleading in the UI — on OpenAI the
+ * logical name `gpt-oss-120b` resolves to `gpt-4o-mini`, which is neither open-weight nor 120B.
+ */
+export function activeModelInfo(): {
+  provider: string | null;
+  generation: string;
+  utility: string;
+  generationDisplay: string;
+} {
+  const primary = availableProviders()[0];
+  const genLogical = logicalModel('generation');
+  const utilLogical = logicalModel('utility');
+  if (!primary) {
+    return {
+      provider: null,
+      generation: genLogical,
+      utility: utilLogical,
+      generationDisplay: displayModelName(genLogical),
+    };
+  }
+  const p = PROVIDERS[primary];
+  const generation = resolveModel(p, genLogical);
+  return {
+    provider: primary,
+    generation,
+    utility: resolveModel(p, utilLogical),
+    generationDisplay: displayModelName(generation),
+  };
+}
+
 /** Providers that are actually usable right now (have credentials). */
 export function availableProviders(): string[] {
   return configuredProviders().filter((n) => {
