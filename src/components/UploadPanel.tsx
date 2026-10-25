@@ -125,13 +125,10 @@ export function UploadPanel({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>1. Grounding Data Ingestion</span>
-            <span className="text-xs font-normal whitespace-nowrap shrink-0 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-              Private server-side index
-            </span>
+            <span>Your materials</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Files are parsed, chunked and embedded on the server. Raw files never leave the app; only small retrieved excerpts (subject to the redaction policy) are sent to the language model.
+            Upload your discussion guide and any background research. Files stay on the server; only short excerpts are sent to the model.
           </p>
         </div>
 
@@ -140,15 +137,15 @@ export function UploadPanel({
           id="load-sample-btn"
           onClick={onLoadSample}
           disabled={isLoadingSample || isUploading}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold theme-text-primary theme-bg-tint theme-border-tint hover:opacity-90 border transition-all shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white theme-btn-primary hover:opacity-90 transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           title="Pre-load a synthetic NYU campus survey CSV and research brief PDF"
         >
           {isLoadingSample ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <Sparkles className="w-4 h-4 theme-icon" />
+            <Sparkles className="w-4 h-4" />
           )}
-          <span>Quick Test: Load Sample Study (NYU Undergrads)</span>
+          <span>Try it with a sample study</span>
         </button>
       </div>
 
@@ -284,7 +281,7 @@ export function UploadPanel({
           <div className="mt-2 p-2.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-800 dark:text-amber-200 flex items-start gap-2">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <p className="leading-snug">
-              <strong>Anti-Imitation Safeguard:</strong> Distinctive quotes, anecdotes, examples, and projective responses from real participants should not be reproduced in synthetic responses.
+              <strong>Heads up:</strong> if you upload a finished study, the synthetic participants may start repeating what the real ones said. Upload the guide and background research only.
             </p>
           </div>
         </div>
@@ -305,11 +302,11 @@ export function UploadPanel({
         <div id="uploaded-files-list" className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Active Store Documents ({files.length})
+              Uploaded files ({files.length})
             </p>
             <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Indexed & Ready for Retrieval Grounding
+              Ready
             </span>
           </div>
 

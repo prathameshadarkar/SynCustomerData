@@ -146,10 +146,10 @@ export function ExportBar({ participants, guideTitle = 'Undergraduate Student Qu
     >
       <div>
         <p className="text-sm font-bold text-slate-900 dark:text-white">
-          Export Generated Research Transcripts
+          Download
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          {participants.length} {participants.length === 1 ? 'participant' : 'participants'} with academic persona profiles, verbatim dialogues, and structured responses
+          {participants.length} {participants.length === 1 ? 'transcript' : 'transcripts'}, as plain text or a spreadsheet
         </p>
       </div>
 

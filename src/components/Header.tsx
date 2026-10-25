@@ -1,4 +1,4 @@
-import { Sparkles, Moon, Sun, RefreshCw, FileText, Palette } from 'lucide-react';
+import { Sparkles, Moon, Sun, RefreshCw, FileText, Settings } from 'lucide-react';
 import { ThemeId } from '../types';
 import { THEME_OPTIONS } from '../theme';
 
@@ -46,13 +46,13 @@ export function Header({
                 <span className="sm:hidden">Transcript Generator</span>
                 <span className="hidden sm:inline">Synthetic Discussion-Guide Transcript Generator</span>
               </h1>
-              <span className="hidden lg:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium theme-badge border whitespace-nowrap">
+              {modelLabel && <span className="hidden lg:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium theme-badge border whitespace-nowrap">
                 <Sparkles className="w-3 h-3 mr-1" />
-                Local RAG{modelLabel ? ` • ${modelLabel}` : ''}
-              </span>
+                {modelLabel}
+              </span>}
             </div>
             <p className="hidden sm:block text-xs text-slate-500 dark:text-slate-400 truncate">
-              Evidence-informed synthetic research participants grounded in your discussion guide and reference research
+              Test a discussion guide on synthetic participants before you recruit real ones
             </p>
           </div>
         </div>
@@ -74,16 +74,11 @@ export function Header({
           <button
             id="theme-options-btn"
             onClick={onOpenThemeModal}
-            className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+            className="inline-flex items-center p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Appearance"
             aria-label="Appearance options"
           >
-            <Palette className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-            <span
-              className="hidden sm:inline-block w-2.5 h-2.5 rounded-full shadow-2xs"
-              style={{ backgroundColor: activeTheme.primaryColor }}
-            />
-            <span className="hidden md:inline font-semibold">{activeTheme.name}</span>
+            <Settings className="w-4 h-4" />
           </button>
 
           <button

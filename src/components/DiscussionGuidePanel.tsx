@@ -117,13 +117,13 @@ export function DiscussionGuidePanel({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>2. Discussion Guide</span>
+            <span>Your questions</span>
             <span className="text-xs font-normal whitespace-nowrap shrink-0 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
               {questionsCount} {questionsCount === 1 ? 'question' : 'questions'}
             </span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            The moderator's scripted questions or agenda topics for each synthetic participant interview.
+            The questions the moderator asks each participant, one per line.
           </p>
         </div>
 

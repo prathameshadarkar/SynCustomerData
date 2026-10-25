@@ -606,7 +606,7 @@ Section 3: Projective Exercise & Future Wishlist
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>Generated Research Transcripts & Structured Data</span>
+                <span>Transcripts</span>
                 {participants.length > 0 && (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                     {participants.length} {participants.length === 1 ? 'Participant' : 'Participants'}
@@ -614,7 +614,7 @@ Section 3: Projective Exercise & Future Wishlist
                 )}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Each section of every interview is grounded in excerpts retrieved from your uploaded research. {health ? policyLabel : ''}
+                One interview per participant, based on your files and questions. Use these to test your guide, not as findings.
               </p>
             </div>
           </div>
@@ -630,13 +630,13 @@ Section 3: Projective Exercise & Future Wishlist
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white">No Transcripts Generated Yet</h3>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1 leading-relaxed">
-                Upload your reference dataset (CSV, XLSX, JSON) or research documents (PDF), customize your discussion guide, and click{' '}
-                <strong className="text-slate-700 dark:text-slate-300 font-semibold">Generate Transcripts</strong>.
+                Add your materials and questions, then click{' '}
+                <strong className="text-slate-700 dark:text-slate-300 font-semibold">Generate</strong>.
               </p>
               <div className="mt-4 inline-flex items-center gap-1.5 text-xs theme-text-primary">
                 <span>Or use</span>
                 <button onClick={handleLoadSample} disabled={isLoadingSample} className="font-bold underline hover:opacity-80 cursor-pointer">
-                  Quick Test: Load Sample Dataset & Guide
+                  Try it with a sample study
                 </button>
                 <span>above to test right away!</span>
               </div>
@@ -651,7 +651,7 @@ Section 3: Projective Exercise & Future Wishlist
             Synthetic Discussion-Guide Transcript Generator
             {health ? ` • ${modelFooterLabel}` : ''}
           </span>
-          <span>Local hybrid retrieval • Raw files never leave the server</span>
+          <span>Your files stay on the server</span>
         </div>
       </footer>
     </div>
